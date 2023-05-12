@@ -1,0 +1,35 @@
+[project]
+name = "doppkit-esri-toolbox"
+dynamic = ["version", "readme"]
+requires-python = ">=3.9"
+license = { file="LICENSE" }
+description = "Tool to allow retrival of USACE GRiD data"
+dependencies = [
+    "doppkit"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+maintainers = [
+    { name = "Ognyan Moore", email = "ogi@hobu.co" },
+]
+
+[project.urls]
+homepage = "https://github.com/hobuinc/doppkit-esri-toolbox"
+repository = "https://github.com/hobuinc/doppkit-esri-toolbox"
+
+[tool.setuptools]
+package-dir = {"" =  "src"}
+zip-safe = false
+
+[tool.setuptools.dynamic]
+version = { attr = "doppkit_toolbox.__version__" }
+readme = { file = ["README.md"] }
+
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
