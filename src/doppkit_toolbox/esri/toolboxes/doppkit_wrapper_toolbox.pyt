@@ -1,4 +1,3 @@
-import doppkit
 import arcpy
 import os
 import pathlib
@@ -18,6 +17,7 @@ class SyncParameters(NamedTuple):
     directory: arcpy.Parameter
     add_to_map: arcpy.Parameter
 
+
 class Toolbox:
     def __init__(self):
         """Define the toolbox (the name of the toolbox is the name of the
@@ -27,13 +27,13 @@ class Toolbox:
 
         # List of tool classes associated with this toolbox
         self.tools = [
-            Fetch_Export,
+            FetchExport,
             # let's hide it for now...
-            # Subprocess_Sync 
+            # SubprocessSync
         ]
 
 
-class Fetch_Export:
+class FetchExport:
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
         self.label = "GRiD Sync"
@@ -71,13 +71,7 @@ class Fetch_Export:
             direction="Input",
         )
         add_to_map.value = True
-
-        params = [grid_access_token, aoi_name, dl_directory, add_to_map]
-        return params
-
-    def isLicensed(self):
-        """Set whether tool is licensed to execute."""
-        return True
+        return [grid_access_token, aoi_name, dl_directory, add_to_map]
 
     def updateParameters(self, parameters):
         """Modify the values and properties of parameters before internal
@@ -109,10 +103,9 @@ class Fetch_Export:
 
         api = Api(app)
 
-
         aoi_url = named_parameters.aoi_pk.valueAsText
         aoi_pk = aoi_url[-7:].strip("/")
-        
+
         arcpy.AddMessage(f"AOI PK: {aoi_pk}")
 
         output_dir = os.fsdecode(
@@ -135,30 +128,28 @@ class Fetch_Export:
         app.pk = aoi_pk
         app.disable_ssl_verification = False
 
-
         sync(app, aoi_pk)
 
         aprx = arcpy.mp.ArcGISProject("CURRENT")
-        activeMap = aprx.activeMap
+        active_map = aprx.activeMap
         arcpy.env.addOutputsToMap = True
-        if activeMap is not None:
-            if named_parameters.add_to_map.value:
-                onlyfiles = [
-                    f
-                    for f in os.listdir(output_dir)
-                    if os.path.isfile(os.path.join(output_dir, f))
-                ]
-                for f in onlyfiles:
-                    try:
-                        activeMap.addDataFromPath(os.path.join(output_dir, f))
-                        arcpy.AddMessage(f"{os.path.join(output_dir, f)} added to map.")
-                    except:
-                        arcpy.AddWarning(
-                            f"{os.path.join(output_dir, f)} cannot be added to the map."
-                        )
-        else:
+        if active_map is None:
             arcpy.AddMessage("Active Map is None")
 
+        elif named_parameters.add_to_map.value:
+            only_files = [
+                f
+                for f in os.listdir(output_dir)
+                if os.path.isfile(os.path.join(output_dir, f))
+            ]
+            for f in only_files:
+                try:
+                    active_map.addDataFromPath(os.path.join(output_dir, f))
+                    arcpy.AddMessage(f"{os.path.join(output_dir, f)} added to map.")
+                except:
+                    arcpy.AddWarning(
+                        f"{os.path.join(output_dir, f)} cannot be added to the map."
+                    )
         return None
 
     def postExecute(self, parameters):
@@ -167,7 +158,7 @@ class Fetch_Export:
         return
 
 
-class Subprocess_Sync:
+class SubprocessSync:
     def __init__(self):
         """Define the tool (tool name is the name of the class)."""
         self.label = "GRID Sync (Subprocess) [DO NOT USE]"
@@ -265,21 +256,21 @@ class Subprocess_Sync:
         aprx = arcpy.mp.ArcGISProject("CURRENT")
         activeMap = aprx.activeMap
         arcpy.env.addOutputsToMap = True
-        if activeMap is not None:
-            if parameters[3].value:
-                onlyfiles = [
-                    f
-                    for f in os.listdir(output_dir)
-                    if os.path.isfile(os.path.join(output_dir, f))
-                ]
-                for f in onlyfiles:
-                    try:
-                        activeMap.addDataFromPath(os.path.join(output_dir, f))
-                        arcpy.AddMessage(f"{os.path.join(output_dir, f)} added to map.")
-                    except:
-                        arcpy.AddWarning(
-                            f"{os.path.join(output_dir, f)} cannot be added to the map."
-                        )
+        if activeMap is not None and parameters[3].value:
+            # TODO: redo this with os.walk
+            onlyfiles = [
+                f
+                for f in os.listdir(output_dir)
+                if os.path.isfile(os.path.join(output_dir, f))
+            ]
+            for f in onlyfiles:
+                try:
+                    activeMap.addDataFromPath(os.path.join(output_dir, f))
+                    arcpy.AddMessage(f"{os.path.join(output_dir, f)} added to map.")
+                except:
+                    arcpy.AddWarning(
+                        f"{os.path.join(output_dir, f)} cannot be added to the map."
+                    )
 
         return
 
