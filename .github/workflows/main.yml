@@ -1,4 +1,4 @@
-name: make_pdf
+name: main
 
 on:
   push:
