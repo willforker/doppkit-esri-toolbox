@@ -28,7 +28,7 @@ zip-safe = false
 
 [tool.setuptools.dynamic]
 version = { attr = "doppkit_toolbox.__version__" }
-readme = { file = ["README.md"] }
+readme = { file = "README.md", content-type = "text/markdown" }
 
 [build-system]
 requires = ["setuptools>=64.0"]
