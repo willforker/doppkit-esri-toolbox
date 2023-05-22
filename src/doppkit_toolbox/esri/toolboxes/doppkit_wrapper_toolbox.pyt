@@ -5,8 +5,6 @@ from doppkit.app import Application
 from doppkit.grid import Api
 from doppkit.sync import sync
 import asyncio
-import subprocess
-import time
 
 from typing import NamedTuple
 
@@ -43,7 +41,7 @@ class FetchExport:
         grid_access_token = arcpy.Parameter(
             displayName="GRiD Access Token",
             name="grid_access_token",
-            datatype="GPString",
+            datatype="GPStringHidden",  # not actually encrypted!!
             parameterType="Required",
             direction="Input",
         )
