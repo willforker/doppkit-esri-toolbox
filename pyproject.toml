@@ -22,9 +22,14 @@ maintainers = [
 homepage = "https://github.com/hobuinc/doppkit-esri-toolbox"
 repository = "https://github.com/hobuinc/doppkit-esri-toolbox"
 
-[tool.setuptools]
-package-dir = {"" =  "src"}
-zip-safe = false
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+doppkit_toolbox = ["*.xml"]
+"doppkit_toolbox.esri.help.gp" = ["*.xml"]
+"doppkit_toolbox.esri.help.gp.toolboxes" = ["*.xml"]
+"doppkit_toolbox.esri.toolboxes" = ["*.pyt", "*.xml"]
 
 [tool.setuptools.dynamic]
 version = { attr = "doppkit_toolbox.__version__" }
