@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 
 class SyncParameters(NamedTuple):
+    grid_server: arcpy.Parameter
     token: arcpy.Parameter
     aoi_pk: arcpy.Parameter
     directory: arcpy.Parameter
@@ -38,6 +39,16 @@ class FetchExport:
 
     def getParameterInfo(self):
         """Define parameter definitions"""
+        grid_server = arcpy.Parameter(
+            displayName="GRiD Server",
+            name="grid_server",
+            datatype="GPString",
+            parameterType="Required",
+            direction="Input",
+        )
+        # specify the default server
+        grid_server.value = "https://grid.nga.mil/grid"
+
         grid_access_token = arcpy.Parameter(
             displayName="GRiD Access Token",
             name="grid_access_token",
@@ -67,7 +78,7 @@ class FetchExport:
             direction="Input",
         )
         add_to_map.value = True
-        return [grid_access_token, aoi_name, dl_directory, add_to_map]
+        return [grid_server, grid_access_token, aoi_name, dl_directory, add_to_map]
 
     def updateParameters(self, parameters):
         """Modify the values and properties of parameters before internal
@@ -88,7 +99,7 @@ class FetchExport:
         )
 
         token = named_parameters.token.valueAsText
-        url = "https://grid.nga.mil/grid"
+        url = named_parameters.grid_server.valueAsText
         log_level = "DEBUG"
 
         # no event loop in ESRI toolboxes?
