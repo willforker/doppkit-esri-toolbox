@@ -42,12 +42,26 @@ class FetchExport:
         grid_server = arcpy.Parameter(
             displayName="GRiD Server",
             name="grid_server",
-            datatype="GPString",
+            datatype="GPValueTable",
             parameterType="Required",
             direction="Input",
+            multiValue=True
         )
+        # grid_server.columns = [["Field"], ["GPString"]]
+        grid_server.columns = [["GPString", "GRiD Server"]]
+        grid_server.filters[0].type = "ValueList"
+        # grid_server.values = [["https://grid.nga.mil/grid"]]
+
         # specify the default server
+        grid_server.filters[0].list = [
+            "https://grid.nga.mil/grid",
+            "https://grid.nga.smil.mil",
+            "https://grid.nga.ic.gov"
+        ]
         grid_server.value = "https://grid.nga.mil/grid"
+        # grid_server.value = "https://grid.nga.mil/grid;https://grid.nga.smil/grid;https://grid.nga.ic.gov"
+
+        # grid_server.filters[0].list = self.validateUrl()
 
         grid_access_token = arcpy.Parameter(
             displayName="GRiD Access Token",
@@ -80,11 +94,15 @@ class FetchExport:
         add_to_map.value = True
         return [grid_server, grid_access_token, aoi_name, dl_directory, add_to_map]
 
-    def updateParameters(self, parameters):
-        """Modify the values and properties of parameters before internal
-        validation is performed.  This method is called whenever a parameter
-        has been changed."""
-        return
+    # def updateParameters(self, parameters):
+    #     """Modify the values and properties of parameters before internal
+    #     validation is performed.  This method is called whenever a parameter
+    #     has been changed."""
+    #     if parameters[0].altered:
+    #         # thank you @fatih_dur https://gis.stackexchange.com/a/294476
+    #         new_values = [i[0] for i in parameters[0].values if i[0] not in parameters[0].filters[0].list]
+    #         parameters[0].filters[0].list += new_values
+
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
