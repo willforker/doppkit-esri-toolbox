@@ -180,7 +180,7 @@ class FetchExport:
         try:
             sync(app, aoi_pk)
         except:
-            arcpy.AddMessage(f"Cannot connect to server. Server URL {url} may not be valid.")
+            arcpy.AddError(f"Cannot connect to server. Server URL {url} may not be valid.")
 
         aprx = arcpy.mp.ArcGISProject("CURRENT")
         active_map = aprx.activeMap
