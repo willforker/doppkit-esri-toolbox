@@ -5,6 +5,7 @@ from doppkit.app import Application
 from doppkit.grid import Api
 from doppkit.sync import sync
 import asyncio
+import time
 
 from typing import NamedTuple
 
@@ -42,18 +43,13 @@ class FetchExport:
         grid_server = arcpy.Parameter(
             displayName="GRiD Server",
             name="grid_server",
-            datatype="GPValueTable",
+            datatype="GPString",
             parameterType="Required",
             direction="Input",
-            multiValue=True
         )
-        # grid_server.columns = [["Field"], ["GPString"]]
-        grid_server.columns = [["GPString", "GRiD Server"]]
-        grid_server.filters[0].type = "ValueList"
-        # grid_server.values = [["https://grid.nga.mil/grid"]]
 
         # specify the default server
-        grid_server.filters[0].list = [
+        grid_server.filter.list = [
             "https://grid.nga.mil/grid",
             "https://grid.nga.smil.mil",
             "https://grid.nga.ic.gov"
@@ -91,26 +87,41 @@ class FetchExport:
             parameterType="Required",
             direction="Input",
         )
+
         add_to_map.value = True
+        
         return [grid_server, grid_access_token, aoi_name, dl_directory, add_to_map]
 
-    # def updateParameters(self, parameters):
-    #     """Modify the values and properties of parameters before internal
-    #     validation is performed.  This method is called whenever a parameter
-    #     has been changed."""
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal
+        validation is performed.  This method is called whenever a parameter
+        has been changed."""
     #     if parameters[0].altered:
     #         # thank you @fatih_dur https://gis.stackexchange.com/a/294476
     #         new_values = [i[0] for i in parameters[0].values if i[0] not in parameters[0].filters[0].list]
     #         parameters[0].filters[0].list += new_values
+        return
 
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
         parameter.  This method is called after internal validation."""
+        if parameters[0].value not in [
+            "https://grid.nga.mil/grid",
+            "https://grid.nga.smil.mil",
+            "https://grid.nga.ic.gov"
+        ]:
+            parameters[0].clearMessage()
         return
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
+
+        arcpy.AddMessage("====== PARAMETERS ======")
+        for parameter_print in parameters:
+            arcpy.AddMessage(
+                f"{parameter_print.displayName} = {parameter_print.valueAsText}"
+            )
 
         named_parameters = SyncParameters(
             *parameters
@@ -133,8 +144,21 @@ class FetchExport:
 
         arcpy.AddMessage(f"AOI PK: {aoi_pk}")
 
+        # make unique folder for outputs
+        current_time = time.localtime(time.time())
+        timestamp = "%d-%02d-%02d_%02d-%02d-%02d" % (
+            current_time.tm_year,
+            current_time.tm_mon,
+            current_time.tm_mday,
+            current_time.tm_hour,
+            current_time.tm_min,
+            current_time.tm_sec,
+        )
+        output_dir_value = os.path.join(named_parameters.directory.valueAsText, f"doppkit-export-{timestamp}")
+        os.mkdir(output_dir_value)
+
         output_dir = os.fsdecode(
-            named_parameters.directory.valueAsText
+            output_dir_value
         ).replace(os.sep, "/")
 
         arcpy.AddMessage(f"Saving to {output_dir}")
@@ -153,7 +177,10 @@ class FetchExport:
         app.pk = aoi_pk
         app.disable_ssl_verification = False
 
-        sync(app, aoi_pk)
+        try:
+            sync(app, aoi_pk)
+        except:
+            arcpy.AddMessage(f"Cannot connect to server. Server URL {url} may not be valid.")
 
         aprx = arcpy.mp.ArcGISProject("CURRENT")
         active_map = aprx.activeMap
@@ -169,6 +196,11 @@ class FetchExport:
 
             # TODO: We should only try and render the newly downloaded files maybe?
             # and not all the files in the download location...
+
+            # will's solution: unique directory, but I remember you didn't 
+            # want to do that, but I forget why...
+
+            # thing to note: gpkg files can't get added this way, so that might be another TODO
 
             for f in files_to_render:
                 try:
