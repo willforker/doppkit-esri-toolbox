@@ -52,7 +52,7 @@ class FetchExport:
         grid_server.filter.list = [
             "https://grid.nga.mil/grid",
             "https://grid.nga.smil.mil",
-            "https://grid.nga.ic.gov"
+            "https://grid.nga.ic.gov",
         ]
         grid_server.value = "https://grid.nga.mil/grid"
         # grid_server.value = "https://grid.nga.mil/grid;https://grid.nga.smil/grid;https://grid.nga.ic.gov"
@@ -89,19 +89,18 @@ class FetchExport:
         )
 
         add_to_map.value = True
-        
+
         return [grid_server, grid_access_token, aoi_name, dl_directory, add_to_map]
 
     def updateParameters(self, parameters):
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-    #     if parameters[0].altered:
-    #         # thank you @fatih_dur https://gis.stackexchange.com/a/294476
-    #         new_values = [i[0] for i in parameters[0].values if i[0] not in parameters[0].filters[0].list]
-    #         parameters[0].filters[0].list += new_values
+        #     if parameters[0].altered:
+        #         # thank you @fatih_dur https://gis.stackexchange.com/a/294476
+        #         new_values = [i[0] for i in parameters[0].values if i[0] not in parameters[0].filters[0].list]
+        #         parameters[0].filters[0].list += new_values
         return
-
 
     def updateMessages(self, parameters):
         """Modify the messages created by internal validation for each tool
@@ -109,7 +108,7 @@ class FetchExport:
         if parameters[0].value not in [
             "https://grid.nga.mil/grid",
             "https://grid.nga.smil.mil",
-            "https://grid.nga.ic.gov"
+            "https://grid.nga.ic.gov",
         ]:
             parameters[0].clearMessage()
         return
@@ -119,13 +118,18 @@ class FetchExport:
 
         arcpy.AddMessage("====== PARAMETERS ======")
         for parameter_print in parameters:
-            arcpy.AddMessage(
-                f"{parameter_print.displayName} = {parameter_print.valueAsText}"
-            )
+            if parameter_print.displayName in [
+                "GRiD Access Token",
+                "Download Directory",
+                "Add Files to Map?",
+            ]:
+                pass
+            else:
+                arcpy.AddMessage(
+                    f"{parameter_print.displayName} = {parameter_print.valueAsText}"
+                )
 
-        named_parameters = SyncParameters(
-            *parameters
-        )
+        named_parameters = SyncParameters(*parameters)
 
         token = named_parameters.token.valueAsText
         url = named_parameters.grid_server.valueAsText
@@ -142,7 +146,8 @@ class FetchExport:
         aoi_url = named_parameters.aoi_pk.valueAsText
         aoi_pk = aoi_url[-7:].strip("/")
 
-        arcpy.AddMessage(f"AOI PK: {aoi_pk}")
+        # for some reason it displays it with the first char missing
+        # arcpy.AddMessage(f"AOI PK: {aoi_pk}")
 
         # make unique folder for outputs
         current_time = time.localtime(time.time())
@@ -154,18 +159,16 @@ class FetchExport:
             current_time.tm_min,
             current_time.tm_sec,
         )
-        output_dir_value = os.path.join(named_parameters.directory.valueAsText, f"doppkit-export-{timestamp}")
+        output_dir_value = os.path.join(
+            named_parameters.directory.valueAsText, f"doppkit-export-{timestamp}"
+        )
         os.mkdir(output_dir_value)
 
-        output_dir = os.fsdecode(
-            output_dir_value
-        ).replace(os.sep, "/")
+        output_dir = os.fsdecode(output_dir_value).replace(os.sep, "/")
 
         arcpy.AddMessage(f"Saving to {output_dir}")
 
-        arcpy.AddMessage(
-            f"Add to map: {named_parameters.add_to_map.value}"
-        )
+        arcpy.AddMessage(f"Add to map: {named_parameters.add_to_map.value}")
 
         # Alex, I'll take 'What is Monkey Patching?' for $500
         app.start_id = 0
@@ -180,7 +183,9 @@ class FetchExport:
         try:
             sync(app, aoi_pk)
         except:
-            arcpy.AddError(f"Cannot connect to server. Server URL {url} may not be valid.")
+            arcpy.AddError(
+                f"Cannot connect to server. Server URL {url} may not be valid."
+            )
 
         aprx = arcpy.mp.ArcGISProject("CURRENT")
         active_map = aprx.activeMap
@@ -197,7 +202,7 @@ class FetchExport:
             # TODO: We should only try and render the newly downloaded files maybe?
             # and not all the files in the download location...
 
-            # will's solution: unique directory, but I remember you didn't 
+            # will's solution: unique directory, but I remember you didn't
             # want to do that, but I forget why...
 
             # thing to note: gpkg files can't get added this way, so that might be another TODO
@@ -207,9 +212,7 @@ class FetchExport:
                     active_map.addDataFromPath(f)
                     arcpy.AddMessage(f"{f} added to map.")
                 except RuntimeError:
-                    arcpy.AddWarning(
-                        f"{f} cannot be added to the map."
-                    )
+                    arcpy.AddWarning(f"{f} cannot be added to the map.")
         return None
 
     def postExecute(self, parameters):
