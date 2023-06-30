@@ -55,9 +55,6 @@ class FetchExport:
             "https://grid.nga.ic.gov",
         ]
         grid_server.value = "https://grid.nga.mil/grid"
-        # grid_server.value = "https://grid.nga.mil/grid;https://grid.nga.smil/grid;https://grid.nga.ic.gov"
-
-        # grid_server.filters[0].list = self.validateUrl()
 
         grid_access_token = arcpy.Parameter(
             displayName="GRiD Access Token",
@@ -96,10 +93,6 @@ class FetchExport:
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
-        #     if parameters[0].altered:
-        #         # thank you @fatih_dur https://gis.stackexchange.com/a/294476
-        #         new_values = [i[0] for i in parameters[0].values if i[0] not in parameters[0].filters[0].list]
-        #         parameters[0].filters[0].list += new_values
         return
 
     def updateMessages(self, parameters):
@@ -116,24 +109,17 @@ class FetchExport:
     def execute(self, parameters, messages):
         """The source code of the tool."""
 
-        arcpy.AddMessage("====== PARAMETERS ======")
-        for parameter_print in parameters:
-            if parameter_print.displayName in [
-                "GRiD Access Token",
-                "Download Directory",
-                "Add Files to Map?",
-            ]:
-                pass
-            else:
-                arcpy.AddMessage(
-                    f"{parameter_print.displayName} = {parameter_print.valueAsText}"
-                )
-
         named_parameters = SyncParameters(*parameters)
 
         token = named_parameters.token.valueAsText
         url = named_parameters.grid_server.valueAsText
         log_level = "DEBUG"
+
+        arcpy.AddMessage("====== PARAMETERS ======")
+        for parameter_print in named_parameters:
+            arcpy.AddMessage(
+                f"{parameter_print.displayName} = {parameter_print.valueAsText}"
+            )
 
         # no event loop in ESRI toolboxes?
         loop = asyncio.new_event_loop()
@@ -149,22 +135,7 @@ class FetchExport:
         # for some reason it displays it with the first char missing
         # arcpy.AddMessage(f"AOI PK: {aoi_pk}")
 
-        # make unique folder for outputs
-        current_time = time.localtime(time.time())
-        timestamp = "%d-%02d-%02d_%02d-%02d-%02d" % (
-            current_time.tm_year,
-            current_time.tm_mon,
-            current_time.tm_mday,
-            current_time.tm_hour,
-            current_time.tm_min,
-            current_time.tm_sec,
-        )
-        output_dir_value = os.path.join(
-            named_parameters.directory.valueAsText, f"doppkit-export-{timestamp}"
-        )
-        os.mkdir(output_dir_value)
-
-        output_dir = os.fsdecode(output_dir_value).replace(os.sep, "/")
+        output_dir = os.fsdecode(named_parameters.directory.valueAsText).replace(os.sep, "/")
 
         arcpy.AddMessage(f"Saving to {output_dir}")
 
@@ -180,39 +151,42 @@ class FetchExport:
         app.pk = aoi_pk
         app.disable_ssl_verification = False
 
+
+        # Looking for error with invalid server URL
         try:
             sync(app, aoi_pk)
-        except:
+        except AttributeError:
             arcpy.AddError(
                 f"Cannot connect to server. Server URL {url} may not be valid."
             )
+        except RuntimeError:
+            arcpy.AddError(
+                f"Unauthorized request. GRiD Access Token or AOI Key: '{aoi_pk}' may not be valid."
+            )
+        else:
+            aprx = arcpy.mp.ArcGISProject("CURRENT")
+            active_map = aprx.activeMap
+            arcpy.env.addOutputsToMap = True
+            if active_map is None:
+                arcpy.AddMessage("Active Map is None")
 
-        aprx = arcpy.mp.ArcGISProject("CURRENT")
-        active_map = aprx.activeMap
-        arcpy.env.addOutputsToMap = True
-        if active_map is None:
-            arcpy.AddMessage("Active Map is None")
+            elif named_parameters.add_to_map.value:
 
-        elif named_parameters.add_to_map.value:
+                files_to_render = []
+                for root, dirs, files in os.walk(output_dir):
+                    files_to_render.extend([os.path.join(root, file) for file in files])
 
-            files_to_render = []
-            for root, dirs, files in os.walk(output_dir):
-                files_to_render.extend([os.path.join(root, file) for file in files])
+                # TODO: We should only try and render the newly downloaded files maybe?
+                # and not all the files in the download location...
 
-            # TODO: We should only try and render the newly downloaded files maybe?
-            # and not all the files in the download location...
+                for f in files_to_render:
+                    try:
+                        active_map.addDataFromPath(f)
+                        arcpy.AddMessage(f"{f} added to map.")
+                    except RuntimeError:
+                        arcpy.AddWarning(f"{f} cannot be added to the map directly.")
+                        # thing to note: gpkg files can't get added this way, so that might be another TODO
 
-            # will's solution: unique directory, but I remember you didn't
-            # want to do that, but I forget why...
-
-            # thing to note: gpkg files can't get added this way, so that might be another TODO
-
-            for f in files_to_render:
-                try:
-                    active_map.addDataFromPath(f)
-                    arcpy.AddMessage(f"{f} added to map.")
-                except RuntimeError:
-                    arcpy.AddWarning(f"{f} cannot be added to the map.")
         return None
 
     def postExecute(self, parameters):
