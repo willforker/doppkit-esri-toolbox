@@ -135,7 +135,9 @@ class FetchExport:
         # for some reason it displays it with the first char missing
         # arcpy.AddMessage(f"AOI PK: {aoi_pk}")
 
-        output_dir = os.fsdecode(named_parameters.directory.valueAsText).replace(os.sep, "/")
+        output_dir = os.fsdecode(named_parameters.directory.valueAsText).replace(
+            os.sep, "/"
+        )
 
         arcpy.AddMessage(f"Saving to {output_dir}")
 
@@ -150,7 +152,6 @@ class FetchExport:
         app.filter = ""
         app.pk = aoi_pk
         app.disable_ssl_verification = False
-
 
         # Looking for error with invalid server URL
         try:
