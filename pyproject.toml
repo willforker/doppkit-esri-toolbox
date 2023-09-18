@@ -5,7 +5,7 @@ requires-python = ">=3.9"
 license = { file="LICENSE" }
 description = "Tool to allow retrival of USACE GRiD data"
 dependencies = [
-    "doppkit == 0.2.1"
+    "doppkit == 0.2.2"
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
