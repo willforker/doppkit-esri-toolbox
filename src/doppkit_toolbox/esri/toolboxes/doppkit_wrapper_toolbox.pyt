@@ -2,8 +2,8 @@ import arcpy
 import os
 import pathlib
 from doppkit.app import Application
-from doppkit.grid import Api
-from doppkit.sync import sync
+from doppkit.grid import Grid
+from doppkit.cli.sync import sync
 import asyncio
 import time
 
@@ -125,10 +125,6 @@ class FetchExport:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        app = Application(token, url, log_level, 20)
-
-        api = Api(app)
-
         aoi_url = named_parameters.aoi_pk.valueAsText
         aoi_pk = aoi_url[-7:].strip("/")
 
@@ -143,15 +139,16 @@ class FetchExport:
 
         arcpy.AddMessage(f"Add to map: {named_parameters.add_to_map.value}")
 
-        # Alex, I'll take 'What is Monkey Patching?' for $500
-        app.start_id = 0
-        app.timeout = 20
-        app.command = "sync"
-        app.overwrite = True
-        app.directory = pathlib.Path(output_dir)
-        app.filter = ""
-        app.pk = aoi_pk
-        app.disable_ssl_verification = False
+        app = Application(
+            token,
+            url=url,
+            log_level=log_level,
+            run_method='ESRI',
+            threads=20,
+            directory=output_dir,
+            override=True
+        )
+        contents = asyncio.run(sync(app, aoi_pk))
 
         # Looking for error with invalid server URL
         try:
@@ -173,12 +170,11 @@ class FetchExport:
 
             elif named_parameters.add_to_map.value:
 
-                files_to_render = []
-                for root, dirs, files in os.walk(output_dir):
-                    files_to_render.extend([os.path.join(root, file) for file in files])
-
-                # TODO: We should only try and render the newly downloaded files maybe?
-                # and not all the files in the download location...
+                files_to_render = [
+                    os.fsdecode(content.target) 
+                    for content in contents 
+                    if hasattr(content, 'target') and isinstance(content.target, pathlib.Path)
+                ]
 
                 for f in files_to_render:
                     try:
