@@ -106,7 +106,6 @@ class FetchExport:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-
         aoi_url = named_parameters.aoi_pk.valueAsText
         aoi_pk = aoi_url[-7:].strip("/")
 
@@ -132,17 +131,18 @@ class FetchExport:
             override=True
         )
         contents = asyncio.run(sync(app, aoi_pk))
+
         files_to_render = [
             os.fsdecode(content.target) 
             for content in contents 
-            if isinstance(content.target, pathlib.Path)
+            if hasattr(content, 'target') and isinstance(content.target, pathlib.Path)
         ]
 
         aprx = arcpy.mp.ArcGISProject("CURRENT")
         active_map = aprx.activeMap
         arcpy.env.addOutputsToMap = True
         if active_map is None:
-            arcpy.AddMessage("Active Map is None")
+            arcpy.AddMessage("Cannot add files to active map as there is no active map.")
 
         elif named_parameters.add_to_map.value:
             for f in files_to_render:
