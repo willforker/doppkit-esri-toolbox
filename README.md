@@ -5,7 +5,22 @@ retrieve exports from GRiD.
 
 ## Installation
 
-Installation of the doppkit toolkit into ArcGIS pro can be done via the following steps:
+For users in restricted network environments, they can run the following command, and the environment cloning happens in an offline fashion.  After doing running the command here proceed below.  The `doppkit-esri-toolbox` and its dependencies will need to be stored in a directory that needs to be referenced when installing the library.
+
+After running the commands below, you can resume from Step 6 in the "online" installation.
+
+```doscon
+(arcgispro-py3) > conda create --clone arcgispro-py3 ^
+--name doppkit ^
+--offline ^
+--chanel ^
+file://"C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3"
+...
+(arcgispro-py3) > activate doppkit
+(doppkit) > pip install --find links <path-to-directory> doppkit-esri-toolbox
+```
+
+Installation of the doppkit toolkit into ArcGIS pro can be done via the following steps.
 
 1. Clone the default python environment that ESRI provides.
 
@@ -27,15 +42,6 @@ Installation of the doppkit toolkit into ArcGIS pro can be done via the followin
     
     ```doscon
     (doppkit) C:\Users\ogi\AppData\Local\ESRI\conda\envs\doppkit> pip install doppkit-esri-toolbox
-    ```
-
-    If users do not have access to https://pypi.org, but have the wheel and its dependencies
-    stored in a directory, they can install from that directory itself.
-
-    ```doscon
-    (doppkit) C:\Users\ogi\AppData\Local\ESRI\conda\envs\doppkit>pip install ^
-        --find-links <path-to-directory> ^
-        doppkit-esri-toolbox
     ```
 
 6. Start ArcGIS in the Geoprocessing tab, look at the list of toolboxes and find GRiD Sync
