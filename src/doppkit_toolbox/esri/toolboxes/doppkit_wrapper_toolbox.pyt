@@ -1,6 +1,7 @@
 import arcpy
 import os
 import pathlib
+import urllib
 from doppkit.app import Application
 from doppkit.grid import Grid
 from doppkit.cli.sync import sync
@@ -17,6 +18,16 @@ class SyncParameters(NamedTuple):
     directory: arcpy.Parameter
     add_to_map: arcpy.Parameter
 
+def test_card_links(url):
+    """Click card, make sure url is valid"""
+    try:
+        status_code = urllib.request.urlopen(url).getcode()
+        if status_code == 200:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 class Toolbox:
     def __init__(self):
@@ -49,12 +60,12 @@ class FetchExport:
         )
 
         # specify the default server
-        grid_server.filter.list = [
-            "https://grid.nga.mil/grid",
-            "https://grid.nga.smil.mil",
-            "https://grid.nga.ic.gov",
-        ]
-        grid_server.value = "https://grid.nga.mil/grid"
+        # grid_server.filter.list = [
+        #     "https://grid.nga.mil/grid",
+        #     "https://grid.nga.smil.mil",
+        #     "https://grid.nga.ic.gov",
+        # ]
+        # grid_server.value = "https://grid.nga.mil/grid"
 
         grid_access_token = arcpy.Parameter(
             displayName="GRiD Access Token",
@@ -93,6 +104,20 @@ class FetchExport:
         """Modify the values and properties of parameters before internal
         validation is performed.  This method is called whenever a parameter
         has been changed."""
+        server_list = []
+        for url in [
+            "https://grid.nga.mil/grid",
+            "https://grid.nga.smil.mil",
+            "https://grid.nga.ic.gov"
+        ]:
+            if test_card_links(url):
+                server_list.append(url)
+        parameters[0].filter.list = server_list
+        if "https://grid.nga.mil/grid" in server_list:
+            parameters[0].value = "https://grid.nga.mil/grid"
+        elif not server_list:
+            parameters[0].AddWarning("No GRiD URLs are connecting. GRiD may be down.")
+
         return
 
     def updateMessages(self, parameters):
