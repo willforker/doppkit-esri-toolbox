@@ -21,8 +21,9 @@ class SyncParameters(NamedTuple):
 def test_card_links(url):
     """Click card, make sure url is valid"""
     try:
-        status_code = urllib.request.urlopen(url).getcode()
-        if status_code == 200:
+        req = urllib.request.Request(url, method="HEAD")
+        resp = urllib.request.urlopen(req)
+        if resp.getcode() == 200:
             return True
         else:
             return False
@@ -116,7 +117,7 @@ class FetchExport:
         if "https://grid.nga.mil/grid" in server_list:
             parameters[0].value = "https://grid.nga.mil/grid"
         elif not server_list:
-            parameters[0].AddWarning("No GRiD URLs are connecting. GRiD may be down.")
+            parameters[0].setWarningMessage("No GRiD URLs are connecting. GRiD may be down.")
 
         return
 
